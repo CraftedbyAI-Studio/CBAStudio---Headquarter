@@ -43,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- MINIMALISTIC CSS: SEITENLEISTEN-PFEIL BLEIBT SICHTBAR & ROTER RAHMEN ENTFERNT ---
+# --- MINIMALISTIC CSS: SIDEBAR-TOGGLE BLEIBT BEHALTEN ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -74,7 +74,7 @@ st.markdown("""
         visibility: hidden !important;
     }
 
-    /* Header transparent machen, damit Sidebar-Toggle-Pfeil (>) garantiert sichtbar bleibt */
+    /* Header transparent machen, damit Sidebar-Toggle-Pfeil (>) sichtbar bleibt */
     [data-testid="stHeader"] {
         background-color: transparent !important;
     }
