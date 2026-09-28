@@ -29,21 +29,33 @@ if not os.path.exists(ENV_PATH):
 
 load_dotenv(ENV_PATH)
 
-# Logo-Pfad flexibel suchen
+# Logo-Pfad aus Dateibaum ermitteln
 logo_path = None
-for candidate in ["wordmark_studio_dark.png", "logo.png", "assets/wordmark_studio_dark.png", "assets/logo.png"]:
+possible_logos = [
+    "wordmark_studio_dark.png",
+    "wordmark_square_dark.png",
+    "wordmark_studio.png",
+    "wordmark_square.png",
+    "logo.png",
+    "assets/wordmark_studio_dark.png",
+    "assets/logo.png"
+]
+
+for candidate in possible_logos:
     if os.path.exists(candidate):
         logo_path = candidate
         break
 
+# Erzwingt permanent geöffnete Sidebar beim Laden
 st.set_page_config(
     page_title="CBA Studio",
     page_icon=logo_path if logo_path else None,
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={"Get Help": None, "Report a bug": None, "About": None},
 )
 
-# --- MINIMALISTIC CSS: SIDEBAR-TOGGLE BLEIBT BEHALTEN ---
+# --- MIDNIGHT NAVY: Badges weg, Sidebar-Pfeil bleibt klickbar ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -60,36 +72,59 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* Unnötige Footer & Badges verstecken */
-    footer, 
-    [data-testid="stStatusWidget"], 
+    footer,
+    [data-testid="stStatusWidget"],
+    [data-testid="stDecoration"],
     #stDecoration,
-    .stAppToolbar,
-    div[class*="viewerBadge"],
-    div[class*="host-"],
     #MainMenu,
-    a[href*="github.com"],
-    a[href*="streamlit.io"] {
+    [data-testid="stToolbar"],
+    [data-testid="stToolbarActions"],
+    [data-testid="stAppDeployButton"],
+    [data-testid="stMainMenu"],
+    [data-testid="manage-app-button"],
+    .viewerBadge_container__1QSob,
+    .viewerBadge_link__1S137,
+    .viewerBadge_text__1JaDK,
+    .styles_viewerBadge__1yB5_,
+    div[class*="viewerBadge"],
+    a[href*="streamlit.io"],
+    a[href*="share.streamlit.io"] {
         display: none !important;
         visibility: hidden !important;
+        pointer-events: none !important;
     }
 
-    /* Header transparent machen, damit Sidebar-Toggle-Pfeil (>) sichtbar bleibt */
+    /* Header bleibt im DOM, damit der Expand-Pfeil oben links nicht verschwindet */
     [data-testid="stHeader"] {
+        background: transparent !important;
         background-color: transparent !important;
+        box-shadow: none !important;
     }
-    
-    [data-testid="stSidebarCollapseButton"],
+
+    /* Collapse/Expand-Pfeil immer sichtbar und über dem Inhalt */
+    [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stExpandSidebarButton"],
     button[aria-label="Expand sidebar"],
-    button[aria-label="Collapse sidebar"] {
-        display: block !important;
+    button[aria-label="Collapse sidebar"],
+    button[title="Expand sidebar"],
+    button[title="Collapse sidebar"] {
+        display: flex !important;
         visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
         color: #0A192F !important;
         z-index: 999999 !important;
     }
 
-    /* Rote Rahmen & Focus Indikatoren deaktivieren */
+    [data-testid="stSidebarCollapsedControl"] {
+        position: fixed !important;
+        top: 0.65rem !important;
+        left: 0.65rem !important;
+        z-index: 1000000 !important;
+    }
+
     div[data-baseweb="input"],
     div[data-baseweb="input"]:focus-within,
     div[data-baseweb="input"] > div,
@@ -117,7 +152,7 @@ st.markdown("""
         border-radius: 6px;
         margin-bottom: 24px;
     }
-    
+
     .brand-header-title {
         font-size: 1.25rem;
         margin: 0;
@@ -133,7 +168,7 @@ st.markdown("""
         font-weight: 600 !important;
         letter-spacing: 1px !important;
     }
-    
+
     .stButton > button:hover {
         background-color: #1E293B !important;
     }
@@ -150,7 +185,7 @@ st.markdown("""
     .stTabs [data-baseweb="tab-highlight"] {
         background-color: #0A192F !important;
     }
-    
+
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
         color: #0A192F !important;
         font-weight: 700 !important;
@@ -200,7 +235,7 @@ if not st.session_state["logged_in"]:
         
         pwd = st.text_input("Zugangsschlüssel:", type="password", key="clean_hq_pwd_key")
 
-        if st.button("Anmelden", use_container_width=True):
+        if st.button("Anmelden", use_container_width=True, key="login_submit_btn"):
             if pwd == "CraftedCEO2026!":
                 st.session_state["logged_in"] = True
                 st.rerun()
@@ -208,7 +243,7 @@ if not st.session_state["logged_in"]:
                 st.error("Falscher Zugangsschlüssel")
     st.stop()
 
-# --- SIDEBAR (SEITENLEISTE) ---
+# --- SIDEBAR (SEITENLEISTE - IMMER AKTIV) ---
 with st.sidebar:
     if logo_path:
         st.image(logo_path, use_container_width=True)
@@ -220,7 +255,7 @@ with st.sidebar:
     
     with st.expander("Neuen Arbeitsbereich erstellen", expanded=False):
         new_chat_name = st.text_input("Name:", key="new_chat_name_input")
-        if st.button("Erstellen", use_container_width=True):
+        if st.button("Erstellen", use_container_width=True, key="create_workspace_btn"):
             if new_chat_name.strip() and new_chat_name.strip() not in st.session_state["chats"]:
                 st.session_state["chats"][new_chat_name.strip()] = []
                 st.session_state["active_chat"] = new_chat_name.strip()
@@ -242,7 +277,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    if st.button("Abmelden", use_container_width=True):
+    if st.button("Abmelden", use_container_width=True, key="logout_btn"):
         st.session_state["logged_in"] = False
         st.rerun()
         
@@ -254,7 +289,7 @@ with st.sidebar:
         claude_key = st.text_input("Claude Key", value=saved_claude, type="password", key="sec_claude_key")
         gemini_key = st.text_input("Gemini Key", value=saved_gemini, type="password", key="sec_gemini_key")
         
-        if st.button("Speichern", use_container_width=True):
+        if st.button("Speichern", use_container_width=True, key="save_api_keys_btn"):
             set_key(ENV_PATH, "CLAUDE_API_KEY", claude_key.strip())
             set_key(ENV_PATH, "GEMINI_API_KEY", gemini_key.strip())
             st.rerun()
@@ -336,7 +371,7 @@ with tab_dokumente:
         st.markdown("#### ORDNER")
         with st.expander("Ordner hinzufügen", expanded=False):
             new_folder_name = st.text_input("Name:", key="new_folder_input")
-            if st.button("Erstellen"):
+            if st.button("Erstellen", key="create_folder_btn"):
                 if new_folder_name.strip():
                     os.makedirs(os.path.join(DOCS_DIR, new_folder_name.strip()), exist_ok=True)
                     st.rerun()
@@ -352,11 +387,15 @@ with tab_dokumente:
 
     with col_right:
         st.markdown("#### UPLOAD")
-        uploaded_file = st.file_uploader("Datei wählen", type=["pdf", "docx", "txt", "csv", "png", "jpg", "md"])
+        uploaded_file = st.file_uploader(
+            "Datei wählen",
+            type=["pdf", "docx", "txt", "csv", "png", "jpg", "md"],
+            key="docs_file_uploader",
+        )
         existing_folders = [f for f in os.listdir(DOCS_DIR) if os.path.isdir(os.path.join(DOCS_DIR, f))]
         if existing_folders and uploaded_file:
-            target_folder = st.selectbox("Zielordner:", sorted(existing_folders))
-            if st.button("Speichern"):
+            target_folder = st.selectbox("Zielordner:", sorted(existing_folders), key="docs_target_folder")
+            if st.button("Speichern", key="save_upload_btn"):
                 file_path = os.path.join(DOCS_DIR, target_folder, uploaded_file.name)
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
@@ -366,9 +405,9 @@ with tab_dokumente:
 # 3. VERTRIEBSKANÄLE & PLATTFORMEN
 with tab_plattformen:
     st.markdown("### VERTRIEBSKANÄLE & PLATTFORMEN")
-    st.button("Tapstitch verbinden")
-    st.button("Etsy verbinden")
-    st.button("Metricool verbinden")
+    st.button("Tapstitch verbinden", key="connect_tapstitch_btn")
+    st.button("Etsy verbinden", key="connect_etsy_btn")
+    st.button("Metricool verbinden", key="connect_metricool_btn")
 
 # 4. KALENDER
 with tab_kalender:
@@ -384,7 +423,7 @@ with tab_kalender:
         st.markdown("#### BUSINESS KALENDER")
         b_date = st.date_input("Business Datum wählen", date.today(), key="b_date_picker")
         b_title = st.text_input("Eintrag", key="b_title_in")
-        if st.button("Business-Termin speichern"):
+        if st.button("Business-Termin speichern", key="save_business_event_btn"):
             if b_title.strip():
                 new_id = f"bus_{datetime.now().timestamp()}"
                 st.session_state["events_and_todos"].append({
@@ -400,7 +439,7 @@ with tab_kalender:
         st.markdown("#### CONTENT KALENDER")
         c_date = st.date_input("Content Datum wählen", date.today(), key="c_date_picker")
         c_title = st.text_input("Content Eintrag", key="c_title_in")
-        if st.button("Content-Termin speichern"):
+        if st.button("Content-Termin speichern", key="save_content_event_btn"):
             if c_title.strip():
                 new_id = f"con_{datetime.now().timestamp()}"
                 st.session_state["events_and_todos"].append({
@@ -445,7 +484,7 @@ with tab_todo:
     t_date = st.date_input("Fällig am:", value=date.today(), key="new_todo_date")
     t_type = st.selectbox("Zuordnung:", ["Business", "Content"], key="new_todo_type")
     
-    if st.button("Hinzufügen"):
+    if st.button("Hinzufügen", key="add_todo_btn"):
         if t_title.strip():
             new_id = f"task_{datetime.now().timestamp()}"
             st.session_state["events_and_todos"].append({
