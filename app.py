@@ -5,6 +5,12 @@ import pandas as pd
 from datetime import datetime, date
 from dotenv import load_dotenv, set_key
 
+# Interaktiver FullCalendar Import
+try:
+    from streamlit_calendar import calendar
+except ImportError:
+    calendar = None
+
 # KI SDKs importieren
 try:
     import anthropic
@@ -23,29 +29,29 @@ if not os.path.exists(ENV_PATH):
 
 load_dotenv(ENV_PATH)
 
-# Logo-Pfad ermitteln
-logo_path = "wordmark_studio_dark.png"
-if not os.path.exists(logo_path):
-    logo_path = "logo.png"
+# Logo-Pfad flexibel suchen
+logo_path = None
+for candidate in ["wordmark_studio_dark.png", "logo.png", "assets/wordmark_studio_dark.png", "assets/logo.png"]:
+    if os.path.exists(candidate):
+        logo_path = candidate
+        break
 
 st.set_page_config(
     page_title="CBA Studio",
-    page_icon=logo_path if os.path.exists(logo_path) else "🏢",
+    page_icon=logo_path if logo_path else None,
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- MINIMALISTIC CSS: ENTFERNT STREAMLIT/GITHUB SYMBOLE & ROTE RAHMEN ---
+# --- MINIMALISTIC CSS: SIDEBAR-BUTTON BLEIBT SICHTBAR, DESIGNELEMENTE BEREINIGT ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Allgemene Schriftarten */
     html, body, .stApp, p, label, input, textarea {
         font-family: 'Helvetica Neue', Helvetica, Inter, sans-serif !important;
     }
 
-    /* Überschriften */
     h1, h2, h3, h4, .stSubheader, .brand-header-title {
         font-family: 'Helvetica Neue', Helvetica, Inter, sans-serif !important;
         font-weight: 600 !important;
@@ -54,8 +60,16 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* Ausblenden aller Streamlit & GitHub Elemente (Header, Toolbar, Footer, Badges) */
-    header, [data-testid="stHeader"], footer, [data-testid="stStatusWidget"], .viewerBadge_container__1QSob, #MainMenu {
+    /* Ausblendung von Footer, Status und Badges – SIDEBAR TOGGLE BLEIBT BEHALTEN */
+    footer, 
+    [data-testid="stStatusWidget"], 
+    #stDecoration,
+    .stAppToolbar,
+    div[class*="viewerBadge"],
+    div[class*="host-"],
+    #MainMenu,
+    a[href*="github.com"],
+    a[href*="streamlit.io"] {
         display: none !important;
         visibility: hidden !important;
     }
@@ -81,7 +95,6 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Header Banner */
     .brand-header-banner {
         background-color: #0A192F;
         color: #FFFFFF;
@@ -97,7 +110,6 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* Buttons */
     .stButton > button {
         background-color: #0A192F !important;
         color: #FFFFFF !important;
@@ -111,7 +123,6 @@ st.markdown("""
         background-color: #1E293B !important;
     }
 
-    /* Navigation / Tabs */
     .stTabs [data-baseweb="tab"] {
         font-family: 'Helvetica Neue', Helvetica, Inter, sans-serif !important;
         letter-spacing: 1.2px !important;
@@ -133,7 +144,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Ordnerverwaltung Initialisierung
+# Ordnerverwaltung
 DOCS_DIR = os.path.join(os.getcwd(), "documents")
 if not os.path.exists(DOCS_DIR):
     os.makedirs(DOCS_DIR)
@@ -141,9 +152,12 @@ if not os.path.exists(DOCS_DIR):
 for folder in ["Brand_Guidelines", "Kollektionen", "Skills_and_Prompts", "Eingangsrechnungen"]:
     os.makedirs(os.path.join(DOCS_DIR, folder), exist_ok=True)
 
-# Session State
+# Session States
 if "events_and_todos" not in st.session_state:
-    st.session_state["events_and_todos"] = []
+    st.session_state["events_and_todos"] = [
+        {"id": "init_1", "title": "Herbst-Kollektion Content-Plan", "start": "2026-09-22", "type": "Content", "completed": False},
+        {"id": "init_2", "title": "Gewerbeanmeldung Schritt 4", "start": "2026-09-25", "type": "Business", "completed": False}
+    ]
 
 if "chats" not in st.session_state:
     st.session_state["chats"] = {"Haupt-Arbeitsbereich": []}
@@ -154,13 +168,13 @@ if "active_chat" not in st.session_state:
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# --- LOGIN SEITE ---
+# --- LOGIN ---
 if not st.session_state["logged_in"]:
     _, col_login, _ = st.columns([1, 1.2, 1])
     with col_login:
         st.write("")
         st.write("")
-        if os.path.exists(logo_path):
+        if logo_path:
             st.image(logo_path, use_container_width=True)
             
         st.markdown("""
@@ -179,13 +193,15 @@ if not st.session_state["logged_in"]:
                 st.error("Falscher Zugangsschlüssel")
     st.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (AUCH BEI AUSGEKLAPPTEM ZUSTAND ÜBER PFEIL ZUGÄNGLICH) ---
 with st.sidebar:
-    if os.path.exists(logo_path):
+    if logo_path:
         st.image(logo_path, use_container_width=True)
+    else:
+        st.markdown("### CBA STUDIO")
     
     st.divider()
-    st.markdown("### Arbeitsbereiche")
+    st.markdown("### ARBEITSBEREICHE")
     
     with st.expander("Neuen Arbeitsbereich erstellen", expanded=False):
         new_chat_name = st.text_input("Name:", key="new_chat_name_input")
@@ -228,14 +244,14 @@ with st.sidebar:
             set_key(ENV_PATH, "GEMINI_API_KEY", gemini_key.strip())
             st.rerun()
 
-# --- HAUPTBEREICH BANNER ---
+# --- HEADER BANNER ---
 st.markdown("""
 <div class="brand-header-banner">
     <div class="brand-header-title">CBA STUDIO HQ</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 7 REITER (CLEAN & ANGEPASST)
+# 7 REITER
 tab_mitarbeiter, tab_dokumente, tab_plattformen, tab_kalender, tab_todo, tab_finanzen, tab_buchhaltung = st.tabs([
     "Mitarbeiter",
     "Dokumente",
@@ -249,7 +265,7 @@ tab_mitarbeiter, tab_dokumente, tab_plattformen, tab_kalender, tab_todo, tab_fin
 # 1. MITARBEITER
 with tab_mitarbeiter:
     current_chat_name = st.session_state["active_chat"]
-    st.markdown(f"### {current_chat_name}")
+    st.markdown(f"### {current_chat_name.upper()}")
     
     active_history = st.session_state["chats"][current_chat_name]
     
@@ -302,7 +318,7 @@ with tab_dokumente:
     col_left, col_right = st.columns(2)
     
     with col_left:
-        st.markdown("#### Ordner")
+        st.markdown("#### ORDNER")
         with st.expander("Ordner hinzufügen", expanded=False):
             new_folder_name = st.text_input("Name:", key="new_folder_input")
             if st.button("Erstellen"):
@@ -320,7 +336,7 @@ with tab_dokumente:
                     st.text(f"- {file}")
 
     with col_right:
-        st.markdown("#### Upload")
+        st.markdown("#### UPLOAD")
         uploaded_file = st.file_uploader("Datei wählen", type=["pdf", "docx", "txt", "csv", "png", "jpg", "md"])
         existing_folders = [f for f in os.listdir(DOCS_DIR) if os.path.isdir(os.path.join(DOCS_DIR, f))]
         if existing_folders and uploaded_file:
@@ -355,7 +371,14 @@ with tab_kalender:
         b_title = st.text_input("Eintrag", key="b_title_in")
         if st.button("Business-Termin speichern"):
             if b_title.strip():
-                st.session_state["events_and_todos"].append({"title": b_title.strip(), "due_date": str(b_date), "type": "Business"})
+                new_id = f"bus_{datetime.now().timestamp()}"
+                st.session_state["events_and_todos"].append({
+                    "id": new_id, 
+                    "title": b_title.strip(), 
+                    "start": str(b_date), 
+                    "type": "Business",
+                    "completed": False
+                })
                 st.rerun()
 
     with col_con:
@@ -364,22 +387,71 @@ with tab_kalender:
         c_title = st.text_input("Content Eintrag", key="c_title_in")
         if st.button("Content-Termin speichern"):
             if c_title.strip():
-                st.session_state["events_and_todos"].append({"title": c_title.strip(), "due_date": str(c_date), "type": "Content"})
+                new_id = f"con_{datetime.now().timestamp()}"
+                st.session_state["events_and_todos"].append({
+                    "id": new_id, 
+                    "title": c_title.strip(), 
+                    "start": str(c_date), 
+                    "type": "Content",
+                    "completed": False
+                })
                 st.rerun()
 
-# 5. TO-DO
+    st.divider()
+
+    bus_events = [{"title": e["title"], "start": e["start"], "color": "#0A192F"} 
+                  for e in st.session_state["events_and_todos"] if e.get("type") == "Business"]
+    
+    con_events = [{"title": e["title"], "start": e["start"], "color": "#475569"} 
+                  for e in st.session_state["events_and_todos"] if e.get("type") == "Content"]
+
+    calendar_options = {
+        "headerToolbar": {
+            "left": "prev,next today",
+            "center": "title",
+            "right": "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+        "initialView": "dayGridMonth",
+        "selectable": True,
+        "editable": True
+    }
+
+    if calendar:
+        c_col1, c_col2 = st.columns(2)
+        with c_col1:
+            calendar(events=bus_events, options=calendar_options, key="bus_cal_widget")
+        with c_col2:
+            calendar(events=con_events, options=calendar_options, key="con_cal_widget")
+
+# 5. TO-DO (SAUBER GEKEYT GEGEN DUPLICATE ELEMENT ID FEHLER)
 with tab_todo:
     st.markdown("### TO-DO")
     t_title = st.text_input("Aufgabe:", key="new_todo_title")
     t_date = st.date_input("Fällig am:", value=date.today(), key="new_todo_date")
+    t_type = st.selectbox("Zuordnung:", ["Business", "Content"], key="new_todo_type")
+    
     if st.button("Hinzufügen"):
         if t_title.strip():
-            st.session_state["events_and_todos"].append({"title": t_title.strip(), "due_date": str(t_date), "type": "Task"})
+            new_id = f"task_{datetime.now().timestamp()}"
+            st.session_state["events_and_todos"].append({
+                "id": new_id, 
+                "title": t_title.strip(), 
+                "start": str(t_date), 
+                "type": t_type,
+                "completed": False
+            })
             st.rerun()
 
     st.divider()
-    for item in st.session_state["events_and_todos"]:
-        st.checkbox(f"{item['due_date']} - {item['title']}")
+    st.markdown("#### OFFENE AUFGABEN")
+    
+    for idx, item in enumerate(st.session_state["events_and_todos"]):
+        if not item.get("completed", False):
+            unique_key = f"chk_{item.get('id', idx)}"
+            is_done = st.checkbox(f"**[{item['start']}]** {item['title']} *({item.get('type', 'Business')})*", key=unique_key)
+            if is_done:
+                item["completed"] = True
+                st.rerun()
 
 # 6. FINANZKENNZAHLEN
 with tab_finanzen:

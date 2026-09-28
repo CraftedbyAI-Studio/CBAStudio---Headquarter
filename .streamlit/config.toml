@@ -1,0 +1,7 @@
+[theme]
+primaryColor = "#0A192F"             # Edles Midnight Navy für Akzente, Buttons & Radio-Auswahlen
+backgroundColor = "#FAFAFA"          # Subtiles, mattes Off-White (schlicht & unaufdringlich)
+secondaryBackgroundColor = "#F1F5F9" # Helles Slate-Grau für die Seitenleiste und Eingabefelder
+textColor = "#0F172A"                # Tiefes Dunkelgrau für maximale Lesbarkeit ohne harten Kontrast
+
+font = "sans serif"
