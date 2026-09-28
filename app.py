@@ -43,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- MINIMALISTIC CSS: ENTFERNUNG VON STREAMLIT/GITHUB ELEMENTEN, FEIL BLEIBT SICHTBAR ---
+# --- MINIMALISTIC CSS: SEITENLEISTEN-PFEIL BLEIBT SICHTBAR & ROTER RAHMEN ENTFERNT ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -60,7 +60,7 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* Ausblendung von Footer, Status, Badges und Header-Inhalten, AUSSER Sidebar Toggle Icon */
+    /* Unnötige Footer & Badges verstecken */
     footer, 
     [data-testid="stStatusWidget"], 
     #stDecoration,
@@ -74,13 +74,15 @@ st.markdown("""
         visibility: hidden !important;
     }
 
-    /* Header transparent/dezent machen, damit Sidebar-Toggle sichtbar bleibt */
+    /* Header transparent machen, damit Sidebar-Toggle-Pfeil (>) garantiert sichtbar bleibt */
     [data-testid="stHeader"] {
         background-color: transparent !important;
     }
     
     [data-testid="stSidebarCollapseButton"],
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"],
+    button[aria-label="Expand sidebar"],
+    button[aria-label="Collapse sidebar"] {
         display: block !important;
         visibility: visible !important;
         color: #0A192F !important;
@@ -181,7 +183,7 @@ if "active_chat" not in st.session_state:
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# --- LOGIN ---
+# --- LOGIN SEITE ---
 if not st.session_state["logged_in"]:
     _, col_login, _ = st.columns([1, 1.2, 1])
     with col_login:
@@ -206,7 +208,7 @@ if not st.session_state["logged_in"]:
                 st.error("Falscher Zugangsschlüssel")
     st.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (SEITENLEISTE) ---
 with st.sidebar:
     if logo_path:
         st.image(logo_path, use_container_width=True)
