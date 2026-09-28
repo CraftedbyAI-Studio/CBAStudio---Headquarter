@@ -43,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- MINIMALISTIC CSS: SIDEBAR-BUTTON BLEIBT SICHTBAR, DESIGNELEMENTE BEREINIGT ---
+# --- MINIMALISTIC CSS: ENTFERNUNG VON STREAMLIT/GITHUB ELEMENTEN, FEIL BLEIBT SICHTBAR ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -60,7 +60,7 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* Ausblendung von Footer, Status und Badges – SIDEBAR TOGGLE BLEIBT BEHALTEN */
+    /* Ausblendung von Footer, Status, Badges und Header-Inhalten, AUSSER Sidebar Toggle Icon */
     footer, 
     [data-testid="stStatusWidget"], 
     #stDecoration,
@@ -72,6 +72,19 @@ st.markdown("""
     a[href*="streamlit.io"] {
         display: none !important;
         visibility: hidden !important;
+    }
+
+    /* Header transparent/dezent machen, damit Sidebar-Toggle sichtbar bleibt */
+    [data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+        color: #0A192F !important;
+        z-index: 999999 !important;
     }
 
     /* Rote Rahmen & Focus Indikatoren deaktivieren */
@@ -193,7 +206,7 @@ if not st.session_state["logged_in"]:
                 st.error("Falscher Zugangsschlüssel")
     st.stop()
 
-# --- SIDEBAR (AUCH BEI AUSGEKLAPPTEM ZUSTAND ÜBER PFEIL ZUGÄNGLICH) ---
+# --- SIDEBAR ---
 with st.sidebar:
     if logo_path:
         st.image(logo_path, use_container_width=True)
@@ -423,7 +436,7 @@ with tab_kalender:
         with c_col2:
             calendar(events=con_events, options=calendar_options, key="con_cal_widget")
 
-# 5. TO-DO (SAUBER GEKEYT GEGEN DUPLICATE ELEMENT ID FEHLER)
+# 5. TO-DO
 with tab_todo:
     st.markdown("### TO-DO")
     t_title = st.text_input("Aufgabe:", key="new_todo_title")
